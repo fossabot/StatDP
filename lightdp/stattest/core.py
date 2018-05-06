@@ -80,25 +80,29 @@ def hypothesis_test(algorithm, args, kwargs, D1, D2, S, epsilon, iterations, cor
     :param cores: Number of processes to run, default is 1 and 0 means utilizing all cores.
     :return: p value.
     """
-    np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
-    if cores == 1:
-        cx, cy = __RunAlgorithm(algorithm, args, kwargs, D1, D2, S).run(iterations)
-        cx, cy = (cx, cy) if cx > cy else (cy, cx)
-        return test_statistics(cx, cy, epsilon, iterations)
-    else:
-        global _process_pool
-        process_count = mp.cpu_count() if cores == 0 else cores
+    pvalue = []
+    for _ in range(10):
+        np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
+        if cores == 1:
+            cx, cy = __RunAlgorithm(algorithm, args, kwargs, D1, D2, S).run(iterations)
+            cx, cy = (cx, cy) if cx > cy else (cy, cx)
+            pvalue.append(test_statistics(cx, cy, epsilon, iterations))
+        else:
+            global _process_pool
+            process_count = mp.cpu_count() if cores == 0 else cores
 
-        process_iterations = [int(math.floor(float(iterations) / process_count)) for _ in range(process_count)]
-        # add the remaining iterations to the last index
-        process_iterations[process_count - 1] += iterations % process_iterations[process_count - 1]
+            process_iterations = [int(math.floor(float(iterations) / process_count)) for _ in range(process_count)]
+            # add the remaining iterations to the last index
+            process_iterations[process_count - 1] += iterations % process_iterations[process_count - 1]
 
-        result = _process_pool.map(__RunAlgorithm(algorithm, args, kwargs, D1, D2, S), process_iterations)
+            result = _process_pool.map(__RunAlgorithm(algorithm, args, kwargs, D1, D2, S), process_iterations)
 
-        cx, cy = 0, 0
-        for process_cx, process_cy in result:
-            cx += process_cx
-            cy += process_cy
+            cx, cy = 0, 0
+            for process_cx, process_cy in result:
+                cx += process_cx
+                cy += process_cy
 
-        cx, cy = (cx, cy) if cx > cy else (cy, cx)
-        return test_statistics(cx, cy, epsilon, iterations)
+            cx, cy = (cx, cy) if cx > cy else (cy, cx)
+            pvalue.append(test_statistics(cx, cy, epsilon, iterations))
+
+    return min(pvalue)
