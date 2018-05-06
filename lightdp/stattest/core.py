@@ -57,11 +57,14 @@ def test_statistics(cx, cy, epsilon, iterations):
 
     return counter
     """
-    global _process_pool
+    #global _process_pool
     # use a multiprocessing.Pool to parallel average p value calculation
-    return np.mean(_process_pool.map(__HyperGeometric(cy, iterations),
-                                     np.random.binomial(cx, 1.0 / (np.exp(epsilon)), 1000),
-                                     chunksize=int(1000 / mp.cpu_count())))
+    #return np.mean(_process_pool.map(__HyperGeometric(cy, iterations),
+    #                                 np.random.binomial(cx, 1.0 / (np.exp(epsilon)), 1000),
+    #                                 chunksize=int(1000 / mp.cpu_count())))
+    np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
+    cx = np.random.binomial(cx, 1.0 / (np.exp(epsilon)))
+    return 1 - stats.hypergeom.cdf(cx, 2 * iterations, iterations, cx + cy)
 
 
 def hypothesis_test(algorithm, args, kwargs, D1, D2, S, epsilon, iterations, cores=0):
