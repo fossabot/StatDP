@@ -103,6 +103,7 @@ def hypothesis_test(algorithm, args, kwargs, D1, D2, S, epsilon, iterations, cor
                 cy += process_cy
 
             cx, cy = (cx, cy) if cx > cy else (cy, cx)
+            print(cx, cy)
             pvalue.append(test_statistics(cx, cy, epsilon, iterations))
 
     return min(pvalue)
