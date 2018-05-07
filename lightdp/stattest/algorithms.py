@@ -139,7 +139,7 @@ def sparse_vector_roth(Q, eps, N, T):
     noisy_T = T + eta1
     count = 0
     for q in Q:
-        eta2 = np.random.laplace(scale=2.0 * N / eps)
+        eta2 = np.random.laplace(scale=4.0 * N / eps)
         if q + eta2 > noisy_T:
             out.append(q+eta2)
             count += 1
@@ -147,7 +147,12 @@ def sparse_vector_roth(Q, eps, N, T):
                 break
         else:
             out.append(False)
-    return out.count(False)
+
+    values = [x for x in out if isinstance(x, float)]
+    a = 0
+    if len(values) > 0:
+        a = np.mean(values)
+    return out.count(False) + a
 
 
 def sparse_vector_lee(Q, eps, N, T):
