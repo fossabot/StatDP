@@ -148,11 +148,18 @@ def sparse_vector_roth(Q, eps, N, T):
         else:
             out.append(False)
 
-    values = [x for x in out if isinstance(x, float)]
-    a = 0
-    if len(values) > 0:
-        a = np.mean(values)
-    return out.count(False) + a
+    if out.count(False) != len(Q) - 1:
+        return -1000
+    else:
+        return out[len(Q) - 1]
+
+    #values = [x for x in out if isinstance(x, float)]
+    #a, b = 0, out.count(False)
+    #if len(values) > 0:
+    #    a = np.mean(values)
+    #else:
+    #    b = b-1
+    #return b + a
 
 
 def sparse_vector_lee(Q, eps, N, T):
