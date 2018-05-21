@@ -63,8 +63,14 @@ def test_statistics(cx, cy, epsilon, iterations):
     #                                 np.random.binomial(cx, 1.0 / (np.exp(epsilon)), 1000),
     #                                 chunksize=int(1000 / mp.cpu_count())))
     np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
-    cx = np.random.binomial(cx, 1.0 / (np.exp(epsilon)))
-    return 1 - stats.hypergeom.cdf(cx, 2 * iterations, iterations, cx + cy)
+    a = np.random.binomial(cx, 1.0 / (np.exp(epsilon)), size=10000)
+    pvalues = list(map(lambda x: 1 - stats.hypergeom.cdf(x, 2 * iterations, iterations, x + cy), a))
+    pvalues.sort()
+    print("here")
+    for i in range(len(pvalues)):
+        if 1-(i+1)*1.0/len(pvalues) <= pvalues[i]:
+            return pvalues[i]
+    return 1
 
 
 def hypothesis_test(algorithm, args, kwargs, D1, D2, S, epsilon, iterations, cores=0):
@@ -80,30 +86,21 @@ def hypothesis_test(algorithm, args, kwargs, D1, D2, S, epsilon, iterations, cor
     :param cores: Number of processes to run, default is 1 and 0 means utilizing all cores.
     :return: p value.
     """
-    pvalue = []
-    for _ in range(21):
-        np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
-        if cores == 1:
-            cx, cy = __RunAlgorithm(algorithm, args, kwargs, D1, D2, S).run(iterations)
+    np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
+    if cores == 1:
+        cx, cy = __RunAlgorithm(algorithm, args, kwargs, D1, D2, S).run(iterations)
+        cx, cy = (cx, cy) if cx > cy else (cy, cx)
+    else:
+        global _process_pool
+        process_count = mp.cpu_count() if cores == 0 else cores
+        process_iterations = [int(math.floor(float(iterations) / process_count)) for _ in range(process_count)]
+        # add the remaining iterations to the last index
+        process_iterations[process_count - 1] += iterations % process_iterations[process_count - 1]
+        result = _process_pool.map(__RunAlgorithm(algorithm, args, kwargs, D1, D2, S), process_iterations)
+        cx, cy = 0, 0
+        for process_cx, process_cy in result:
+            cx += process_cx
+            cy += process_cy
             cx, cy = (cx, cy) if cx > cy else (cy, cx)
-            pvalue.append(test_statistics(cx, cy, epsilon, iterations))
-        else:
-            global _process_pool
-            process_count = mp.cpu_count() if cores == 0 else cores
 
-            process_iterations = [int(math.floor(float(iterations) / process_count)) for _ in range(process_count)]
-            # add the remaining iterations to the last index
-            process_iterations[process_count - 1] += iterations % process_iterations[process_count - 1]
-
-            result = _process_pool.map(__RunAlgorithm(algorithm, args, kwargs, D1, D2, S), process_iterations)
-
-            cx, cy = 0, 0
-            for process_cx, process_cy in result:
-                cx += process_cx
-                cy += process_cy
-
-            cx, cy = (cx, cy) if cx > cy else (cy, cx)
-            print(cx, cy)
-            pvalue.append(test_statistics(cx, cy, epsilon, iterations))
-
-    return min(pvalue)
+    return test_statistics(cx, cy, epsilon, iterations)
