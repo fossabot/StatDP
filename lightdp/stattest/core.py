@@ -81,7 +81,7 @@ def hypothesis_test(algorithm, args, kwargs, D1, D2, S, epsilon, iterations, cor
     :return: p value.
     """
     pvalue = []
-    for _ in range(10):
+    for _ in range(21):
         np.random.seed(int(codecs.encode(os.urandom(4), 'hex'), 16))
         if cores == 1:
             cx, cy = __RunAlgorithm(algorithm, args, kwargs, D1, D2, S).run(iterations)
